@@ -10,10 +10,11 @@ from aiogram.enums import ParseMode
 
 TOKEN = os.getenv("BOT_TOKEN")
 
-# Оставляем только рабочие источники
+# Новые рабочие источники конфигураций
 NODES_SOURCES = [
-    "https://raw.githubusercontent.com/free-v2ray/v2ray-configs/main/vless.txt",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub1/vless.txt"
+    "https://raw.githubusercontent.com/ALIILAPRO/v2ray-configs/main/sub/vless.txt",
+    "https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub/vless.txt",
+    "https://raw.githubusercontent.com/mahdibland/V2RayAir/main/V2Ray.txt"
 ]
 
 dp = Dispatcher()
@@ -33,6 +34,7 @@ def fetch_nodes():
                     if line.startswith("vless://"):
                         valid_nodes.append(line)
                 
+                logging.info(f"Найдено подходящих vless://: {len(valid_nodes)}")
                 if valid_nodes:
                     return valid_nodes[:10]
         except Exception as e:
