@@ -10,10 +10,10 @@ from aiogram.enums import ParseMode
 
 TOKEN = os.getenv("BOT_TOKEN")
 
+# Оставляем только рабочие источники
 NODES_SOURCES = [
     "https://raw.githubusercontent.com/free-v2ray/v2ray-configs/main/vless.txt",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub1/vless.txt",
-    "https://raw.githubusercontent.com/soroushmirzaei/telegram-configs-collector/main/protocols/vless"
+    "https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub1/vless.txt"
 ]
 
 dp = Dispatcher()
@@ -23,6 +23,8 @@ def fetch_nodes():
         try:
             logging.info(f"Пытаемся скачать из: {url}")
             response = requests.get(url, timeout=10)
+            logging.info(f"Статус ответа: {response.status_code}")
+            
             if response.status_code == 200:
                 lines = response.text.splitlines()
                 valid_nodes = []
