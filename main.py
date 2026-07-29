@@ -2,6 +2,7 @@ import asyncio
 import logging
 import sys
 import os
+import base64
 import threading
 import requests
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -12,20 +13,21 @@ from aiogram.enums import ParseMode
 
 TOKEN = os.getenv("BOT_TOKEN")
 
-# Актуальные источники конфигураций
+# Надежные источники конфигураций
 NODES_SOURCES = [
     "https://raw.githubusercontent.com/ALIILAPRO/v2ray-configs/main/sub/vless.txt",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub/vless.txt"
+    "https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub/vless.txt",
+    "https://raw.githubusercontent.com/mahdibland/V2RayAir/main/V2Ray.txt"
 ]
 
-# 1. Мини-сервер для того, чтобы Render был доволен открытым портом
+# Мини-сервер для удержания порта на Render
 class HealthCheckHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
         self.end_headers()
         self.wfile.write(b"Bot is running!")
     def log_message(self, format, *args):
-        pass  # Отключаем лишние логи веб-сервера в консоли
+        pass
 
 def start_web_server():
     port = int(os.getenv("PORT", 10000))
@@ -42,14 +44,30 @@ def fetch_nodes():
             logging.info(f"Статус ответа: {response.status_code}")
             
             if response.status_code == 200:
-                lines = response.text.splitlines()
+                content = response.text.strip()
                 valid_nodes = []
+                
+                # Способ 1: Читаем как обычный текст по строкам
+                lines = content.splitlines()
                 for line in lines:
                     line = line.strip()
                     if line.startswith("vless://"):
                         valid_nodes.append(line)
                 
-                logging.info(f"Найдено подходящих vless://: {len(valid_nodes)}")
+                # Способ 2: Если строка одна или текст зашифрован в Base64
+                if not valid_nodes:
+                    try:
+                        padded = content + '=' * (-len(content) % 4)
+                        decoded_bytes = base64.b64decode(padded)
+                        decoded_text = decoded_bytes.decode('utf-8', errors='ignore')
+                        for line in decoded_text.splitlines():
+                            line = line.strip()
+                            if line.startswith("vless://"):
+                                valid_nodes.append(line)
+                    except Exception as b64_err:
+                        logging.info(f"Ошибка декодирования base64: {b64_err}")
+                
+                logging.info(f"Найдено рабочих vless://: {len(valid_nodes)}")
                 if valid_nodes:
                     return valid_nodes[:10]
         except Exception as e:
@@ -87,7 +105,7 @@ async def main():
         logging.error("Не найден токен бота! Укажи переменную окружения BOT_TOKEN на Render.")
         return
     
-    # Запускаем веб-сервер в фоновом потоке, чтобы Render не ругался на порты
+    # Запускаем фоновый веб-сервер для Render
     threading.Thread(target=start_web_server, daemon=True).start()
     
     bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN))
