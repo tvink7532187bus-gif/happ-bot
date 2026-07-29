@@ -10,7 +10,6 @@ from aiogram.enums import ParseMode
 
 TOKEN = os.getenv("BOT_TOKEN")
 
-# Список запасных источников с конфигурациями
 NODES_SOURCES = [
     "https://raw.githubusercontent.com/free-v2ray/v2ray-configs/main/vless.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub1/vless.txt",
@@ -20,26 +19,29 @@ NODES_SOURCES = [
 dp = Dispatcher()
 
 def fetch_nodes():
-    """Проходим по списку источников, пока не найдем рабочие конфигурации"""
     for url in NODES_SOURCES:
         try:
+            logging.info(f"Пытаемся скачать из: {url}")
             response = requests.get(url, timeout=10)
+            logging.info(f"Статус ответа: {response.status_code}")
+            
             if response.status_code == 200:
                 lines = response.text.splitlines()
+                logging.info(f"Всего строк в файле: {len(lines)}")
+                
                 valid_nodes = []
                 for line in lines:
                     line = line.strip()
-                    # Главное требование: строка начинается с vless:// и в ней есть UUID (текст до @)
                     if line.startswith("vless://"):
-                        parts = line[8:].split("@")
-                        if len(parts) > 0 and parts[0].strip():
-                            valid_nodes.append(line)
+                        valid_nodes.append(line)
+                
+                logging.info(f"Найдено подходящих vless://: {len(valid_nodes)}")
                 
                 if valid_nodes:
-                    return valid_nodes[:10]  # Возвращаем до 10 рабочих штук
+                    return valid_nodes[:10]
         except Exception as e:
             logging.error(f"Ошибка при загрузке из {url}: {e}")
-    
+            
     return []
 
 @dp.message(Command("start"))
@@ -57,7 +59,6 @@ async def command_free_handler(message: types.Message):
         await message.answer("Пока не удалось получить серверы ни из одного источника. Попробуй позже!")
         return
     
-    # Берем первые 3 конфигурации из найденных
     selected_nodes = nodes[:3]
     
     response_text = "Вот несколько актуальных бесплатных конфигураций:\n\n"
