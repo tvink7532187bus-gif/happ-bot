@@ -23,19 +23,13 @@ def fetch_nodes():
         try:
             logging.info(f"Пытаемся скачать из: {url}")
             response = requests.get(url, timeout=10)
-            logging.info(f"Статус ответа: {response.status_code}")
-            
             if response.status_code == 200:
                 lines = response.text.splitlines()
-                logging.info(f"Всего строк в файле: {len(lines)}")
-                
                 valid_nodes = []
                 for line in lines:
                     line = line.strip()
                     if line.startswith("vless://"):
                         valid_nodes.append(line)
-                
-                logging.info(f"Найдено подходящих vless://: {len(valid_nodes)}")
                 
                 if valid_nodes:
                     return valid_nodes[:10]
@@ -75,6 +69,10 @@ async def main():
         return
     
     bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN))
+    
+    # Сбрасываем старые зависшие сессии
+    await bot.delete_webhook(drop_pending_updates=True)
+    
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
