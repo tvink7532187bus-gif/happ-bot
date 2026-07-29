@@ -2,7 +2,9 @@ import asyncio
 import logging
 import sys
 import os
+import threading
 import requests
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.client.default import DefaultBotProperties
@@ -10,12 +12,25 @@ from aiogram.enums import ParseMode
 
 TOKEN = os.getenv("BOT_TOKEN")
 
-# Новые рабочие источники конфигураций
+# Актуальные источники конфигураций
 NODES_SOURCES = [
     "https://raw.githubusercontent.com/ALIILAPRO/v2ray-configs/main/sub/vless.txt",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub/vless.txt",
-    "https://raw.githubusercontent.com/mahdibland/V2RayAir/main/V2Ray.txt"
+    "https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub/vless.txt"
 ]
+
+# 1. Мини-сервер для того, чтобы Render был доволен открытым портом
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Bot is running!")
+    def log_message(self, format, *args):
+        pass  # Отключаем лишние логи веб-сервера в консоли
+
+def start_web_server():
+    port = int(os.getenv("PORT", 10000))
+    server = HTTPServer(("0.0.0.0", port), HealthCheckHandler)
+    server.serve_forever()
 
 dp = Dispatcher()
 
@@ -71,6 +86,9 @@ async def main():
     if not TOKEN:
         logging.error("Не найден токен бота! Укажи переменную окружения BOT_TOKEN на Render.")
         return
+    
+    # Запускаем веб-сервер в фоновом потоке, чтобы Render не ругался на порты
+    threading.Thread(target=start_web_server, daemon=True).start()
     
     bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN))
     
