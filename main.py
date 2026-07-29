@@ -13,11 +13,9 @@ from aiogram.enums import ParseMode
 
 TOKEN = os.getenv("BOT_TOKEN")
 
-# Надежные источники конфигураций
+# Источник конфигураций
 NODES_SOURCES = [
-    "https://raw.githubusercontent.com/ALIILAPRO/v2ray-configs/main/sub/vless.txt",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub/vless.txt",
-    "https://raw.githubusercontent.com/mahdibland/V2RayAir/main/V2Ray.txt"
+    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/All_Configs_Sub.txt"
 ]
 
 # Мини-сервер для удержания порта на Render
