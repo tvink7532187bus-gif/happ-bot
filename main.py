@@ -9,24 +9,37 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
 TOKEN = os.getenv("BOT_TOKEN")
-NODES_SOURCE_URL = "https://raw.githubusercontent.com/free-v2ray/v2ray-configs/main/vless.txt"
+
+# Список запасных источников с конфигурациями
+NODES_SOURCES = [
+    "https://raw.githubusercontent.com/free-v2ray/v2ray-configs/main/vless.txt",
+    "https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub1/vless.txt",
+    "https://raw.githubusercontent.com/soroushmirzaei/telegram-configs-collector/main/protocols/vless"
+]
 
 dp = Dispatcher()
 
 def fetch_nodes():
-    """Функция для скачивания и фильтрации конфигураций"""
-    try:
-        response = requests.get(NODES_SOURCE_URL, timeout=10)
-        if response.status_code == 200:
-            lines = response.text.splitlines()
-            valid_nodes = []
-            for line in lines:
-                line = line.strip()
-                if line.startswith("vless://") and "@" in line and "?" in line:
-                    valid_nodes.append(line)
-            return valid_nodes
-    except Exception as e:
-        logging.error(f"Ошибка при загрузке серверов: {e}")
+    """Проходим по списку источников, пока не найдем рабочие конфигурации"""
+    for url in NODES_SOURCES:
+        try:
+            response = requests.get(url, timeout=10)
+            if response.status_code == 200:
+                lines = response.text.splitlines()
+                valid_nodes = []
+                for line in lines:
+                    line = line.strip()
+                    # Главное требование: строка начинается с vless:// и в ней есть UUID (текст до @)
+                    if line.startswith("vless://"):
+                        parts = line[8:].split("@")
+                        if len(parts) > 0 and parts[0].strip():
+                            valid_nodes.append(line)
+                
+                if valid_nodes:
+                    return valid_nodes[:10]  # Возвращаем до 10 рабочих штук
+        except Exception as e:
+            logging.error(f"Ошибка при загрузке из {url}: {e}")
+    
     return []
 
 @dp.message(Command("start"))
@@ -41,10 +54,10 @@ async def command_free_handler(message: types.Message):
     nodes = fetch_nodes()
     
     if not nodes:
-        await message.answer("Пока не удалось получить рабочие серверы, попробуй позже.")
+        await message.answer("Пока не удалось получить серверы ни из одного источника. Попробуй позже!")
         return
     
-    # Берем первые 3 конфигурации из списка (если их меньше, то сколько есть)
+    # Берем первые 3 конфигурации из найденных
     selected_nodes = nodes[:3]
     
     response_text = "Вот несколько актуальных бесплатных конфигураций:\n\n"
